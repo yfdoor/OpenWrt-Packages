@@ -6,4 +6,4 @@
 ## 功能：
 - 自动同步收集 OpenWrt Packages，包括但不限于： 
   1. Lean Packages
-  2. Lieonl Package
+  2. Lienol Package
