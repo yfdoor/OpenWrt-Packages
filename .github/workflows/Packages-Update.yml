@@ -1,0 +1,78 @@
+# This is free software, lisence use MIT.
+# Copyright (C) https://github.com/yfdoor
+#
+# https://github.com/yfdoor/OpenWrt-Packages
+# Description: GitHub Actions for OpenWrt Packages Auto Update
+
+name: Packages-Update
+
+# 触发条件
+on:
+  schedule:
+     - cron: 0 0 * * *
+  watch:
+     types: started
+
+# 环境定义
+env:
+  #####################################################
+  #####   1：自动更新 OpwnWrt-Packages
+  #####################################################
+  SSH_ACTION: false
+  TZ: Asia/Shanghai
+  #####################################################
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    if: github.event.repository.owner.id == github.event.sender.id
+
+    steps:
+      # 项目初始
+      - name: Code Checkout
+        uses: actions/checkout@main
+
+      # 初始环境
+      - name: Initialize Environment
+        run: |
+          sudo timedatectl set-timezone "$TZ"
+          echo "UPDATE_DATE=$(date +"%Y.%m.%d-%H:%M")" >> $GITHUB_ENV
+          
+          echo "========================================"
+          echo "[Space Usage]:"
+          echo "========================================"
+          df -hT
+          echo "========================================"
+          echo "[File List]:" 
+          echo "========================================"
+          echo "Current Path:" $PWD
+          ls -l -A
+          echo "========================================"   
+          
+     # 下载插件
+      - name: Download Packages
+        id: download
+        run: |
+          chmod +x Packages.sh
+          rm -rf yfdoor lean lienol
+          ./Packages.sh
+          
+          echo "========================================"
+          echo "[File List]:" 
+          echo "========================================"
+          echo "Current Path:" $PWD
+          ls -l -A
+          echo "========================================"          
+          echo "::set-output name=status::success" 
+     
+     # 更新分支
+      - name: Upload Branch
+        if: steps.download.outputs.status == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
+        run: |
+          git config user.name "yfdoor"
+          git config user.email "yfdoor@github.com"
+          git add .
+          git commit -m "Update OpenWrt-Packages "${{ env.UPDATE_DATE }}
+          git push --quiet
