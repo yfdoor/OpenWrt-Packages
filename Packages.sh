@@ -1,4 +1,6 @@
 #!/bin/bash
+rm -rf lean lienol yfdoor default-settings
+
 svn co https://github.com/coolsnowwolf/lede/trunk/package/lean                          lean
 svn co https://github.com/coolsnowwolf/lede/trunk/package/lean/default-settings         default-settings
 svn co https://github.com/Lienol/openwrt-package/trunk                                  lienol
