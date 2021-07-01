@@ -18,7 +18,6 @@ env:
   #####################################################
   #####   1：自动更新 OpwnWrt-Packages
   #####################################################
-  SSH_ACTION: false
   TZ: Asia/Shanghai
   #####################################################
 
@@ -54,7 +53,6 @@ jobs:
         id: download
         run: |
           chmod +x Packages.sh
-          rm -rf yfdoor lean lienol
           ./Packages.sh
           
           echo "========================================"
