@@ -1,7 +1,7 @@
 #!/bin/bash
 rm -rf lean lienol yfdoor
 
-svn co https://github.com/coolsnowwolf/lede/trunk/package/lean                          lean
+svn co https://github.com/coolsnowwolf/luci/trunk/applications                          lean
 svn co https://github.com/Lienol/openwrt-package/trunk                                  lienol
 svn co https://github.com/fw876/helloworld/trunk                                        yfdoor
 svn co https://github.com/coolsnowwolf/lede/trunk/package/lean/default-settings         yfdoor/default-settings
