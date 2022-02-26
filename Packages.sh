@@ -9,6 +9,7 @@ rm -rf lean lienol kenzok dependency yfdoor
 svn co https://github.com/kenzok8/openwrt-packages/trunk                                kenzok
 svn co https://github.com/kenzok8/small/trunk                                           dependency
 svn co https://github.com/coolsnowwolf/lede/trunk/package/lean/default-settings         yfdoor/default-settings 
+svn co https://github.com/fw876/helloworld/trunk                                        yfdoor/helloworld
 
 rm -rf ./*/.git*
 rm -rf ./*/*/.git*
