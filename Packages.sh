@@ -1,5 +1,5 @@
 #!/bin/bash
-rm -rf lean lienol kenzok dependency yfdoor
+rm -rf kenzok dependency yfdoor
 
 #svn co https://github.com/coolsnowwolf/luci/trunk/applications                          lean
 #svn co https://github.com/Lienol/openwrt-package/trunk                                  lienol
