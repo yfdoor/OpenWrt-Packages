@@ -1,18 +1,21 @@
 #!/bin/bash
-rm -rf kenzok dependency yfdoor
+function mvdir() {
+mv -n `find $1/* -maxdepth 0 -type d` ./
+rm -rf $1
+}
 
 #svn co https://github.com/coolsnowwolf/luci/trunk/applications                          lean
 #svn co https://github.com/Lienol/openwrt-package/trunk                                  lienol
 #svn co https://github.com/fw876/helloworld/trunk                                        yfdoor/helloworld
 #svn co https://github.com/rufengsuixing/luci-app-adguardhome/trunk                      yfdoor/luci-app-adguardhome
 
-#svn co https://github.com/kenzok8/openwrt-packages/trunk                                kenzok
-#svn co https://github.com/kenzok8/small/trunk                                           dependency
-#svn co https://github.com/coolsnowwolf/lede/trunk/package/lean/default-settings         yfdoor/default-settings 
-#svn co https://github.com/fw876/helloworld/trunk                                        yfdoor/helloworld
+git clone --depth 1 https://github.com/kenzok8/openwrt-packages                         kenzok
+git clone --depth 1 https://github.com/kenzok8/small                                    dependency
+git clone --depth 1 https://github.com/fw876/helloworld/trunk                           yfdoor/helloworld
 
-rm -rf ./*/.git*
-rm -rf ./*/*/.git*
-rm -rf ./*/.svn*
-rm -rf ./*/*/.svn*
+svn co https://github.com/coolsnowwolf/lede/trunk/package/lean/default-settings         yfdoor/default-settings 
+
+
+rm -rf ./*/.git & rm -f ./*/.gitattributes
+rm -rf ./*/.svn & rm -rf ./*/.github & rm -rf ./*/.gitignore
 exit 0
