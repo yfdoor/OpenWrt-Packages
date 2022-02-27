@@ -6,10 +6,11 @@ rm -rf $1
 
 git clone --depth 1 https://github.com/kenzok8/openwrt-packages                         kenzok
 git clone --depth 1 https://github.com/kenzok8/small                                    dependency
-#git clone --depth 1 https://github.com/fw876/helloworld                                 yfdoor/helloworld
 
 svn co https://github.com/coolsnowwolf/lede/trunk/package/lean/default-settings         yfdoor/default-settings 
 
-rm -rf ./*/.git & rm -f ./*/.gitattributes
-rm -rf ./*/.svn & rm -rf ./*/.github & rm -rf ./*/.gitignore
+rm -rf ./*/.git & rm -rf ./*/*/.git & rm -rf ./*/*/*/.git
+rm -rf ./*/.gitignore & rm -rf ./*/*/.gitignore & rm -rf ./*/*/*/.gitignore
+rm -rf ./*/.svn & rm -rf ./*/*/.svn & rm -rf ./*/*/*/.svn
+
 exit 0
