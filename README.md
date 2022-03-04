@@ -7,3 +7,4 @@
 - 自动同步收集 OpenWrt Packages，包括但不限于： 
   1. Lean Packages
   2. Lienol Package
+  3. kenzok8 Package
