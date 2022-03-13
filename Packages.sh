@@ -1,8 +1,5 @@
 #!/bin/bash
-function mvdir() {
-mv -n `find $1/* -maxdepth 0 -type d` ./
-rm -rf $1
-}
+rm -rf kenzok dependency yfdoor
 
 git clone --depth 1 https://github.com/kenzok8/openwrt-packages                         kenzok
 git clone --depth 1 https://github.com/kenzok8/small                                    dependency
