@@ -8,7 +8,7 @@ s = m:section(TypedSection, "alist")
 s.addremove = false
 s.anonymous = true
 
-o = s:option(Flag, "enabled", translate("Enable"))
+o = s:option(Flag, "enabled", translate("Enabled"))
 o.rmempty = false
 
 o = s:option(Value, "port", translate("Port"))
@@ -39,7 +39,7 @@ o.default = "0"
 o.rmempty = false
 
 o = s:option(Value, "token_expires_in", translate("Login Validity Period (hours)"))
-o.datatype = "and(uinteger,min(0))"
+o.datatype = "and(uinteger,min(1))"
 o.default = "48"
 o.rmempty = false
 

@@ -20,9 +20,15 @@ AMLOGIC_SOC_FILE="/etc/flippy-openwrt-release"
 START_LOG="${TMP_CHECK_DIR}/amlogic_check_firmware.log"
 RUNNING_LOG="${TMP_CHECK_DIR}/amlogic_running_script.log"
 LOG_FILE="${TMP_CHECK_DIR}/amlogic.log"
+all_releases_list="${TMP_CHECK_DIR}/josn_api_releases"
 support_platform=("allwinner" "rockchip" "amlogic" "qemu-aarch64")
 LOGTIME="$(date "+%Y-%m-%d %H:%M:%S")"
 [[ -d ${TMP_CHECK_DIR} ]] || mkdir -p ${TMP_CHECK_DIR}
+# Set github API default value
+github_page="1"
+github_per_page="100"
+
+rm -f ${all_releases_list}
 
 # Clean the running log
 clean_running() {
@@ -133,24 +139,49 @@ fi
 check_updated() {
     tolog "02. Start checking for the latest version..."
 
-    # Query the latest version
-    latest_version="$(
-        curl -s \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/${server_firmware_url}/releases |
-            jq '.[]' |
-            jq -s --arg RTK "${releases_tag_keywords}" '.[] | select(.tag_name | contains($RTK))' |
-            jq -s '.[] | {data:.published_at, url:.assets[].browser_download_url }' |
-            jq -s --arg BOARD "_${BOARD}_" --arg MLV "${main_line_version}." '.[] | select((.url | contains($BOARD)) and (.url | contains($MLV)))' |
-            jq -s 'sort_by(.data)|reverse[]' |
-            jq -s '.[0]' -c
-    )"
-    [[ "${latest_version}" == "null" ]] && tolog "02.01 Invalid OpenWrt download address." "1"
-    latest_updated_at="$(echo ${latest_version} | jq -r '.data')"
-    latest_url="$(echo ${latest_version} | jq -r '.url')"
+    # Get the release list
+    while true; do
+        response="$(
+            curl -s -L \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "https://api.github.com/repos/${server_firmware_url}/releases?per_page=${github_per_page}&page=${github_page}"
+        )"
 
-    # Convert to readable date format
-    date_display_format="$(echo ${latest_updated_at} | tr 'T' '(' | tr 'Z' ')')"
+        # Check if the response is empty or an error occurred
+        if [[ -z "${response}" ]] || [[ "${response}" == *"Not Found"* ]]; then
+            tolog "02.01 Invalid OpenWrt download address." "1"
+        else
+            # Filter the results and save them to the file
+            echo "${response}" |
+                jq '.[]' |
+                jq -s --arg RTK "${releases_tag_keywords}" '.[] | select(.tag_name | contains($RTK))' |
+                jq -s '.[].assets[] | {data:.updated_at, url:.browser_download_url}' |
+                jq -s --arg BOARD "_${BOARD}_" --arg MLV "${main_line_version}." --arg FSX "${firmware_suffix}" \
+                    '.[] | select((.url | contains($BOARD)) and (.url | contains($MLV)) and (.url | endswith($FSX)))' \
+                    >>${all_releases_list}
+        fi
+
+        # Check if the current page has fewer results than the per_page limit
+        if [[ "$(echo "${response}" | jq '. | length')" -lt "${github_per_page}" ]]; then
+            break
+        else
+            # Increase the page number
+            github_page="$((github_page + 1))"
+        fi
+    done
+
+    # Get the latest version
+    if [[ -s "${all_releases_list}" ]]; then
+        latest_version="$(cat ${all_releases_list} | jq -s 'sort_by(.data) | reverse | .[0]' -c)"
+        latest_updated_at="$(echo ${latest_version} | jq -r '.data')"
+        latest_url="$(echo ${latest_version} | jq -r '.url')"
+
+        # Convert to readable date format
+        date_display_format="$(echo ${latest_updated_at} | tr 'T' '(' | tr 'Z' ')')"
+    else
+        tolog "02.02 The search results for releases are empty." "1"
+    fi
 
     # Check the firmware update code
     down_check_code="${latest_updated_at}.${main_line_version}"
@@ -208,16 +239,20 @@ download_firmware() {
         tolog "03.02 OpenWrt download failed." "1"
     fi
 
-    # Download address of sha256sums file
-    shafile_path="$(echo ${opfile_path} | awk -F'/' '{print $1}')"
-    shafile_file="https://github.com/${server_firmware_url}/releases/download/${shafile_path}/sha256sums"
     # Download sha256sums file
-    if wget "${shafile_file}" -q -O "${FIRMWARE_DOWNLOAD_PATH}/sha256sums" 2>/dev/null; then
-        tolog "03.03 Sha256sums downloaded successfully."
-        releases_firmware_sha256sums="$(cat sha256sums | grep ${firmware_download_oldname##*/} | awk '{print $1}')"
-        download_firmware_sha256sums="$(sha256sum ${firmware_download_name} | awk '{print $1}')"
-        [[ -n "${releases_firmware_sha256sums}" && "${releases_firmware_sha256sums}" != "${download_firmware_sha256sums}" ]] && tolog "03.04 The sha256sum check is different." "1"
+    if wget "${latest_url}.sha" -q -O "${FIRMWARE_DOWNLOAD_PATH}/sha256sums" 2>/dev/null; then
+        tolog "03.03 sha file downloaded successfully."
+
+        # If there is a sha256sum file, compare it
+        releases_firmware_sha256sums="$(cat ${FIRMWARE_DOWNLOAD_PATH}/sha256sums | grep ${firmware_download_oldname##*/} | awk '{print $1}')"
+        download_firmware_sha256sums="$(sha256sum ${FIRMWARE_DOWNLOAD_PATH}/${firmware_download_name} | awk '{print $1}')"
+        if [[ -n "${releases_firmware_sha256sums}" && "${releases_firmware_sha256sums}" != "${download_firmware_sha256sums}" ]]; then
+            tolog "03.04 sha256sum verification mismatched." "1"
+        else
+            tolog "03.05 sha256sum verification succeeded."
+        fi
     fi
+
     sync && sleep 3
 
     tolog "You can update."

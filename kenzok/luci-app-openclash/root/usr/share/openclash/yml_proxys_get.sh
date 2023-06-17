@@ -24,9 +24,9 @@ ruby_read()
    ruby -ryaml -rYAML -I "/usr/share/openclash" -E UTF-8 -e "$RUBY_YAML_PARSE" 2>/dev/null
 }
 
-CONFIG_FILE=$(uci get openclash.config.config_path 2>/dev/null)
+CONFIG_FILE=$(uci -q get openclash.config.config_path)
 CONFIG_NAME=$(echo "$CONFIG_FILE" |awk -F '/' '{print $5}' 2>/dev/null)
-UPDATE_CONFIG_FILE=$(uci get openclash.config.config_update_path 2>/dev/null)
+UPDATE_CONFIG_FILE=$(uci -q get openclash.config.config_update_path)
 UPDATE_CONFIG_NAME=$(echo "$UPDATE_CONFIG_FILE" |awk -F '/' '{print $5}' 2>/dev/null)
 LOGTIME=$(echo $(date "+%Y-%m-%d %H:%M:%S"))
 LOG_FILE="/tmp/openclash.log"
@@ -62,8 +62,8 @@ proxy_hash=$(ruby_read "$CONFIG_FILE" ".select {|x| 'proxies' == x or 'proxy-pro
 CFG_FILE="/etc/config/openclash"
 match_servers="/tmp/match_servers.list"
 match_provider="/tmp/match_provider.list"
-servers_update=$(uci get openclash.config.servers_update 2>/dev/null)
-servers_if_update=$(uci get openclash.config.servers_if_update 2>/dev/null)
+servers_update=$(uci -q get openclash.config.servers_update)
+servers_if_update=$(uci -q get openclash.config.servers_if_update)
 
 #proxy
 num=$(ruby_read_hash "$proxy_hash" "['proxies'].count")
@@ -468,6 +468,51 @@ do
       end
    }.join
 
+   Thread.new{
+      #Multiplex
+      if Value['proxies'][$count].key?('smux') then
+         if Value['proxies'][$count]['smux'].key?('enabled') then
+            smux = '${uci_set}multiplex=' + Value['proxies'][$count]['smux']['enabled'].to_s
+            system(smux)
+         end;
+         #multiplex_protocol
+         if Value['proxies'][$count]['smux'].key?('protocol') then
+            multiplex_protocol = '${uci_set}multiplex_protocol=' + Value['proxies'][$count]['smux']['protocol'].to_s
+            system(multiplex_protocol)
+         end;
+         #multiplex_max_connections
+         if Value['proxies'][$count]['smux'].key?('max-connections') then
+            multiplex_max_connections = '${uci_set}multiplex_max_connections=' + Value['proxies'][$count]['smux']['max-connections'].to_s
+            system(multiplex_max_connections)
+         end;
+         #multiplex_min_streams
+         if Value['proxies'][$count]['smux'].key?('min-streams') then
+            multiplex_min_streams = '${uci_set}multiplex_min_streams=' + Value['proxies'][$count]['smux']['min-streams'].to_s
+            system(multiplex_min_streams)
+         end;
+         #multiplex_max_streams
+         if Value['proxies'][$count]['smux'].key?('max-streams') then
+            multiplex_max_streams = '${uci_set}multiplex_max_streams=' + Value['proxies'][$count]['smux']['max-streams'].to_s
+            system(multiplex_max_streams)
+         end;
+         #multiplex_padding
+         if Value['proxies'][$count]['smux'].key?('padding') then
+            multiplex_padding = '${uci_set}multiplex_padding=' + Value['proxies'][$count]['smux']['padding'].to_s
+            system(multiplex_padding)
+         end;
+         #multiplex_statistic
+         if Value['proxies'][$count]['smux'].key?('statistic') then
+            multiplex_statistic = '${uci_set}multiplex_statistic=' + Value['proxies'][$count]['smux']['statistic'].to_s
+            system(multiplex_statistic)
+         end;
+         #multiplex_only_tcp
+         if Value['proxies'][$count]['smux'].key?('only-tcp') then
+            multiplex_only_tcp = '${uci_set}multiplex_only_tcp=' + Value['proxies'][$count]['smux']['only-tcp'].to_s
+            system(multiplex_only_tcp)
+         end;
+      end;
+   }.join
+
    if '$server_type' == 'ss' then
       Thread.new{
       #cipher
@@ -534,7 +579,7 @@ do
                skip_cert_verify = '${uci_set}skip_cert_verify=' + Value['proxies'][$count]['plugin-opts']['skip-cert-verify'].to_s
                system(skip_cert_verify)
             end
-         end
+         end;
          if Value['proxies'][$count]['plugin'].to_s == 'shadow-tls' then
             mode = '${uci_set}obfs=' + Value['proxies'][$count]['plugin'].to_s
             system(mode)
@@ -542,6 +587,25 @@ do
             if Value['proxies'][$count]['plugin-opts'].key?('password') then
                obfs_password = '${uci_set}obfs_password=\"' + Value['proxies'][$count]['plugin-opts']['password'].to_s + '\"'
                system(obfs_password)
+            end
+         end;
+         if Value['proxies'][$count]['plugin'].to_s == 'restls' then
+            mode = '${uci_set}obfs=' + Value['proxies'][$count]['plugin'].to_s
+            system(mode)
+            #password
+            if Value['proxies'][$count]['plugin-opts'].key?('password') then
+               obfs_password = '${uci_set}obfs_password=\"' + Value['proxies'][$count]['plugin-opts']['password'].to_s + '\"'
+               system(obfs_password)
+            end
+            #version-hint
+            if Value['proxies'][$count]['plugin-opts'].key?('version-hint') then
+               obfs_version_hint = '${uci_set}obfs_version_hint=\"' + Value['proxies'][$count]['plugin-opts']['version-hint'].to_s + '\"'
+               system(obfs_version_hint)
+            end
+            #restls-script
+            if Value['proxies'][$count]['plugin-opts'].key?('restls-script') then
+               obfs_restls_script = '${uci_set}obfs_restls_script=\"' + Value['proxies'][$count]['plugin-opts']['restls-script'].to_s + '\"'
+               system(obfs_restls_script)
             end
          end;
       end
@@ -1477,15 +1541,15 @@ if [ "$servers_if_update" = "1" ]; then
         if [ -z "$line" ]; then
            continue
         fi
-        if [ "$(uci get openclash.@servers["$line"].manual 2>/dev/null)" = "0" ] && [ "$(uci get openclash.@servers["$line"].config 2>/dev/null)" = "$CONFIG_NAME" ]; then
-           uci delete openclash.@servers["$line"] 2>/dev/null
+        if [ "$(uci -q get openclash.@servers["$line"].manual)" = "0" ] && [ "$(uci -q get openclash.@servers["$line"].config)" = "$CONFIG_NAME" ]; then
+           uci -q delete openclash.@servers["$line"]
         fi
      done 2>/dev/null
 fi
 
-uci set openclash.config.servers_if_update=0
+uci -q set openclash.config.servers_if_update=0
 wait
-uci commit openclash
+uci -q commit openclash
 LOG_OUT "Config File【$CONFIG_NAME】Read Successful!"
 sleep 3
 SLOG_CLEAN

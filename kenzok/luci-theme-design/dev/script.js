@@ -58,12 +58,12 @@
      * @returns {boolean} success?
      */
     function getCurrentNodeByUrl() {
-        const urlReg = new RegExp(nodeUrl + "$")
-        var ret = false;
         if (!$('body').hasClass('logged-in')) {
             luciLocation = ["Main", "Login"];
             return true;
         }
+        const urlReg = new RegExp(nodeUrl + "$")
+        var ret = false;
         $(".main > .main-left > .nav > .slide > .active").next(".slide-menu").stop(true).slideUp("fast");
         $(".main > .main-left > .nav > .slide > .menu").removeClass("active");
         $(".main > .main-left > .nav > .slide > .menu").each(function () {
@@ -110,13 +110,6 @@
         }
     });
 
-    if ($("#cbi-dhcp-lan-ignore").length > 0) {
-        observer.observe(document.getElementById("cbi-dhcp-lan-ignore"), {
-            subtree: true,
-            attributes: true
-        });
-    }
-
     /**
      * hook menu click and add the hash
      */
@@ -149,9 +142,6 @@
         $("body").addClass(mainNodeName);
     }
     
-    $(".cbi-button-up").val("");
-    $(".cbi-button-down").val("");
-
     /**
      * hook other "A Label" and add hash to it.
      */
@@ -227,14 +217,6 @@
             $("header").css("box-shadow", "18rem 2px 4px rgb(0 0 0 / 8%)")
             $("header>.container>.brand").css("padding", '0rem')
         }
-    });
-   
-    /**
-     * fix legend position
-     */
-    $("legend").each(function () {
-        var that = $(this);
-        that.after("<span class='panel-title'>" + that.text() + "</span>");
     });
 
     $(".main-right").focus();
