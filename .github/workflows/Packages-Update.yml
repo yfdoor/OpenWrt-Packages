@@ -60,8 +60,7 @@ jobs:
           echo "========================================"
           echo "Current Path:" $PWD
           ls -l -A
-          echo "========================================"          
-          # echo "::set-output name=status::success" 
+          echo "========================================"           
           echo "status=success" >> $GITHUB_OUTPUT
      
      # 更新分支
