@@ -61,7 +61,8 @@ jobs:
           echo "Current Path:" $PWD
           ls -l -A
           echo "========================================"          
-          echo "::set-output name=status::success" 
+          # echo "::set-output name=status::success" 
+          echo "status=success" >> $GITHUB_OUTPUT
      
      # 更新分支
       - name: Upload Branch
