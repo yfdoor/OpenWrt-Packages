@@ -321,14 +321,6 @@ function gen_config_server(node)
 				clients = clients
 			}
 		end
-	elseif node.protocol == "mtproto" then
-		settings = {
-			users = {
-				{
-					secret = (node.password == nil) and "" or node.password
-				}
-			}
-		}
 	elseif node.protocol == "dokodemo-door" then
 		settings = {
 			network = node.d_protocol,
@@ -381,10 +373,12 @@ function gen_config_server(node)
 				tag = "outbound",
 				streamSettings = {
 					sockopt = {
+						mark = 255,
 						interface = node.outbound_node_iface
 					}
 				}
 			}
+			sys.call("mkdir -p /tmp/etc/passwall/iface && touch /tmp/etc/passwall/iface/" .. node.outbound_node_iface)
 		else
 			local outbound_node_t = uci:get_all("passwall", node.outbound_node)
 			if node.outbound_node == "_socks" or node.outbound_node == "_http" then
@@ -819,6 +813,22 @@ function gen_config(var)
 								rule_balancerTag = balancer.tag
 							end
 						end
+					elseif _node.protocol == "_iface" then
+						if _node.iface then
+							local _outbound = {
+								protocol = "freedom",
+								tag = rule_name,
+								streamSettings = {
+									sockopt = {
+										mark = 255,
+										interface = _node.iface
+									}
+								}
+							}
+							table.insert(outbounds, _outbound)
+							rule_outboundTag = rule_name
+							sys.call("touch /tmp/etc/passwall/iface/" .. _node.iface)
+						end
 					end
 				end
 				return rule_outboundTag, rule_balancerTag
@@ -912,10 +922,12 @@ function gen_config(var)
 						tag = "outbound",
 						streamSettings = {
 							sockopt = {
+								mark = 255,
 								interface = node.iface
 							}
 						}
 					}
+					sys.call("touch /tmp/etc/passwall/iface/" .. node.iface)
 				end
 			else
 				outbound = gen_outbound(flag, node)
