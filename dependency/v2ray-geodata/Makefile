@@ -21,22 +21,22 @@ define Download/geoip
   HASH:=9b4458ab219131dcbfe1dde3c2e7aa59b9d42a8396ccc0ba998109e15c27c754
 endef
 
-GEOSITE_VER:=20231128180936
+GEOSITE_VER:=20231202050515
 GEOSITE_FILE:=dlc.dat.$(GEOSITE_VER)
 define Download/geosite
   URL:=https://github.com/v2fly/domain-list-community/releases/download/$(GEOSITE_VER)/
   URL_FILE:=dlc.dat
   FILE:=$(GEOSITE_FILE)
-  HASH:=f94cf7377b2bb29717c381ab41e42508a4211d5c1ac431cd10bcc03e8fc9a9b6
+  HASH:=7a6cfbb0164fc6ad2b772cbccc6b8f3dea5a0743055228392d5da40f2260305d
 endef
 
-GEOSITE_IRAN_VER:=202311270026
+GEOSITE_IRAN_VER:=202312040026
 GEOSITE_IRAN_FILE:=iran.dat.$(GEOSITE_IRAN_VER)
 define Download/geosite-ir
   URL:=https://github.com/bootmortis/iran-hosted-domains/releases/download/$(GEOSITE_IRAN_VER)/
   URL_FILE:=iran.dat
   FILE:=$(GEOSITE_IRAN_FILE)
-  HASH:=bf36f1ba76f9e9cc49419dcdc107a1f4b5ee2e25911d729fc770f52b071e1b4e
+  HASH:=bc0f82b20609de5750bf60e7709b392e647cde0ceaf24d69265bac700dbc2010
 endef
 
 define Package/v2ray-geodata/template
