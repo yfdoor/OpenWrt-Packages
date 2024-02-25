@@ -53,7 +53,7 @@ jobs:
           allowUpdates: true
           replacesArtifacts: true
           bodyFile: "release.txt"
-          tag: v1.1.${{ github.run_number }}_${{ matrix.arch }}
+          tag: v1.${{ github.run_number }}_${{ matrix.arch }}
 
       - name: Delete workflow runs
         uses: Mattraks/delete-workflow-runs@main
@@ -64,7 +64,7 @@ jobs:
       - name: Remove old Releases
         uses: dev-drprasad/delete-older-releases@master
         with:
-          keep_latest: 3
+          keep_latest: 4
           delete_tags: true
         env:
            GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
