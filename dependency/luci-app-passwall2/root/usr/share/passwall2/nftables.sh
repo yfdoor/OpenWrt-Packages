@@ -595,16 +595,16 @@ add_firewall_rule() {
 	[ -n "$ISP_DNS" ] && {
 		#echolog "处理 ISP DNS 例外..."
 		for ispip in $ISP_DNS; do
-			insert_nftset $NFTSET_LANLIST "-1" $ispip >/dev/null 2>&1 &
-			#echolog "  - 追加到白名单：${ispip}"
+			insert_nftset $NFTSET_LANLIST "-1" $ispip
+			echolog "  - [$?]追加ISP IPv4 DNS到白名单：${ispip}"
 		done
 	}
 
 	[ -n "$ISP_DNS6" ] && {
 		#echolog "处理 ISP IPv6 DNS 例外..."
 		for ispip6 in $ISP_DNS6; do
-			insert_nftset $NFTSET_LANLIST6 "-1" $ispip6 >/dev/null 2>&1 &
-			#echolog "  - 追加到白名单：${ispip6}"
+			insert_nftset $NFTSET_LANLIST6 "-1" $ispip6
+			echolog "  - [$?]追加ISP IPv6 DNS到白名单：${ispip6}"
 		done
 	}
 	
@@ -662,6 +662,14 @@ add_firewall_rule() {
 	nft "flush chain inet fw4 PSW2_OUTPUT_MANGLE"
 	nft "add rule inet fw4 PSW2_OUTPUT_MANGLE ip daddr @$NFTSET_LANLIST counter return"
 	nft "add rule inet fw4 PSW2_OUTPUT_MANGLE ip daddr @$NFTSET_VPSLIST counter return"
+	[ -n "$AUTO_DNS" ] && {
+		for auto_dns in $(echo $AUTO_DNS | tr ',' ' '); do
+			local dns_address=$(echo $auto_dns | awk -F '#' '{print $1}')
+			local dns_port=$(echo $auto_dns | awk -F '#' '{print $2}')
+			nft "add rule inet fw4 PSW2_OUTPUT_MANGLE ip protocol udp ip daddr ${dns_address} $(factor ${dns_port:-53} "udp dport") counter return"
+			echolog "  - [$?]追加直连DNS到nftables：${dns_address}:${dns_port:-53}"
+		done
+	}
 	nft "add rule inet fw4 PSW2_OUTPUT_MANGLE ip daddr @$nftset_global_whitelist counter return"
 	nft "add rule inet fw4 PSW2_OUTPUT_MANGLE meta mark 0xff counter return"
 
@@ -794,7 +802,7 @@ add_firewall_rule() {
 				nft "add rule inet fw4 PSW2_OUTPUT_MANGLE ip protocol tcp $(factor $TCP_REDIR_PORTS "tcp dport") jump PSW2_RULE"
 				nft "add rule inet fw4 PSW2_MANGLE ip protocol tcp iif lo $(REDIRECT $REDIR_PORT TPROXY4) comment \"本机\""
 				nft "add rule inet fw4 PSW2_MANGLE ip protocol tcp iif lo counter return comment \"本机\""
-				nft "add rule inet fw4 mangle_output meta nfproto {ipv4} ip protocol tcp counter jump PSW2_OUTPUT_MANGLE comment \"PSW2_OUTPUT_MANGLE\""
+				nft "add rule inet fw4 mangle_output ip protocol tcp counter jump PSW2_OUTPUT_MANGLE comment \"PSW2_OUTPUT_MANGLE\""
 			fi
 
 			[ "$PROXY_IPV6" == "1" ] && {
@@ -828,7 +836,7 @@ add_firewall_rule() {
 			nft "add rule inet fw4 PSW2_OUTPUT_MANGLE ip protocol udp $(factor $UDP_REDIR_PORTS "udp dport") jump PSW2_RULE"
 			nft "add rule inet fw4 PSW2_MANGLE ip protocol udp iif lo $(REDIRECT $REDIR_PORT TPROXY4) comment \"本机\""
 			nft "add rule inet fw4 PSW2_MANGLE ip protocol udp iif lo counter return comment \"本机\""
-			nft "add rule inet fw4 mangle_output meta nfproto {ipv4} ip protocol udp counter jump PSW2_OUTPUT_MANGLE comment \"PSW2_OUTPUT_MANGLE\""
+			nft "add rule inet fw4 mangle_output ip protocol udp counter jump PSW2_OUTPUT_MANGLE comment \"PSW2_OUTPUT_MANGLE\""
 
 			if [ "$PROXY_IPV6_UDP" == "1" ]; then
 				nft "add rule inet fw4 PSW2_OUTPUT_MANGLE_V6 meta l4proto udp ip6 daddr $FAKE_IP_6 jump PSW2_RULE"
@@ -953,11 +961,11 @@ gen_include() {
 				[ ! -z "\${WAN_IP}" ] && nft "replace rule inet fw4 PSW2_MANGLE handle \$PR_INDEX ip daddr "\${WAN_IP}" counter return comment \"WAN_IP_RETURN\""
 			fi
 			nft "add rule inet fw4 mangle_prerouting meta nfproto {ipv4} counter jump PSW2_MANGLE"
-			nft "add rule inet fw4 mangle_output meta nfproto {ipv4} ip protocol tcp counter jump PSW2_OUTPUT_MANGLE comment \"PSW2_OUTPUT_MANGLE\""
+			nft "add rule inet fw4 mangle_output ip protocol tcp counter jump PSW2_OUTPUT_MANGLE comment \"PSW2_OUTPUT_MANGLE\""
 		}
 		\$(sh ${MY_PATH} insert_rule_before "inet fw4" "mangle_prerouting" "PSW2_MANGLE" "counter jump PSW2_DIVERT")
 
-		[ "$UDP_NODE" != "nil" -o "$TCP_UDP" = "1" ] && nft "add rule inet fw4 mangle_output meta nfproto {ipv4} ip protocol udp counter jump PSW2_OUTPUT_MANGLE comment \"PSW2_OUTPUT_MANGLE\""
+		[ "$UDP_NODE" != "nil" -o "$TCP_UDP" = "1" ] && nft "add rule inet fw4 mangle_output ip protocol udp counter jump PSW2_OUTPUT_MANGLE comment \"PSW2_OUTPUT_MANGLE\""
 
 		[ "$PROXY_IPV6" == "1" ] && {
 			PR_INDEX=\$(sh ${MY_PATH} RULE_LAST_INDEX "inet fw4" PSW2_MANGLE_V6 WAN6_IP_RETURN -1)
