@@ -944,6 +944,7 @@ function gen_config(var)
 					if e.domain_list then
 						domains = {}
 						string.gsub(e.domain_list, '[^' .. "\r\n" .. ']+', function(w)
+							if w:find("#") == 1 then return end
 							table.insert(domains, w)
 						end)
 					end
@@ -951,6 +952,7 @@ function gen_config(var)
 					if e.ip_list then
 						ip = {}
 						string.gsub(e.ip_list, '[^' .. "\r\n" .. ']+', function(w)
+							if w:find("#") == 1 then return end
 							table.insert(ip, w)
 						end)
 					end
@@ -1282,7 +1284,7 @@ function gen_config(var)
 				tag = "fragment",
 				settings = {
 					domainStrategy = (direct_dns_query_strategy and direct_dns_query_strategy ~= "") and direct_dns_query_strategy or "UseIP",
-					fragments = {
+					fragment = {
 						packets = (xray_settings.fragment_packets and xray_settings.fragment_packets ~= "") and xray_settings.fragment_packets,
 						length = (xray_settings.fragment_length and xray_settings.fragment_length ~= "") and xray_settings.fragment_length,
 						interval = (xray_settings.fragment_interval and xray_settings.fragment_interval ~= "") and xray_settings.fragment_interval
