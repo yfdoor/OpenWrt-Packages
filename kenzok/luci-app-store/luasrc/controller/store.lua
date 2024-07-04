@@ -29,13 +29,22 @@ function index()
     entry({"admin", "store", "get_block_devices"}, call("get_block_devices"))
 
     entry({"admin", "store", "configured"}, call("configured"))
+    entry({"admin", "store", "entrysh"}, post("entrysh"))
 
-    for _, action in ipairs({"update", "install", "upgrade", "remove"}) do
+    -- docker
+    entry({"admin", "store", "docker_check_dir"}, call("docker_check_dir"))
+    entry({"admin", "store", "docker_check_migrate"}, call("docker_check_migrate"))
+    entry({"admin", "store", "docker_migrate"}, post("docker_migrate"))
+
+    -- package
+    for _, action in ipairs({"update", "install", "upgrade", "remove", "autoconf"}) do
         store_api(action, true)
     end
     for _, action in ipairs({"status", "installed"}) do
         store_api(action, false)
     end
+
+    -- backup
     if nixio.fs.access("/usr/libexec/istore/backup") then
         entry({"admin", "store", "get_support_backup_features"}, call("get_support_backup_features"))
         entry({"admin", "store", "light_backup"}, post("light_backup"))
@@ -93,23 +102,32 @@ local function vue_lang()
     return lang
 end
 
+local function flock(file, type)
+    local nixio = require "nixio"
+    local oflags = nixio.open_flags("wronly", "creat")
+    local lock, code, msg = nixio.open(file, oflags)
+    if not lock then
+        return nil, "Open lock failed: " .. msg
+    end
+
+    -- Acquire lock
+    local stat, code, msg = lock:lock(type)
+    if not stat then
+        lock:close()
+        return nil, "Lock failed: " .. msg
+    end
+    return lock, nil
+end
+
 local function is_exec(cmd, async)
     local nixio = require "nixio"
     local os   = require "os"
     local fs   = require "nixio.fs"
     local rshift  = nixio.bit.rshift
 
-    local oflags = nixio.open_flags("wronly", "creat")
-    local lock, code, msg = nixio.open("/var/lock/istore.lock", oflags)
-    if not lock then
-        return 255, "", "Open lock failed: " .. msg
-    end
-
-    -- Acquire lock
-    local stat, code, msg = lock:lock("tlock")
-    if not stat then
-        lock:close()
-        return 255, "", "Lock failed: " .. msg
+    local lock, msg = flock("/var/lock/istore.lock", "tlock")
+    if lock == nil then
+        return 255, "", msg
     end
 
     if async then
@@ -220,6 +238,69 @@ function validate_pkgname(val)
 	return (val ~= nil and val:match("^[a-zA-Z0-9_-]+$") ~= nil)
 end
 
+local function get_installed_and_cache()
+    local metadir = "/usr/lib/opkg/meta"
+    local cachedir = "/tmp/cache/istore"
+    local cachefile = cachedir .. "/installed.json"
+    local metapkgpre = "app-meta-"
+    local nixio = require "nixio"
+    local fs   = require "nixio.fs"
+    local ipkg = require "luci.model.ipkg"
+    local jsonc = require "luci.jsonc"
+    local result = {}
+    local lock, msg = flock("/var/lock/istore-installed.lock", "lock")
+    local ms = fs.stat(metadir)
+    local cs = fs.stat(cachefile)
+    if not ms then
+        result = {}
+    elseif not cs or ms["mtime"] > cs["mtime"] then
+        local itr = fs.dir(metadir)
+        local data = {}
+        if itr then
+            local i18n = require("luci.i18n")
+            local pkg
+            for pkg in itr do
+                if pkg:match("^.*%.json$") then
+                    local metadata = fs.readfile(metadir .. "/" .. pkg)
+                    if metadata ~= nil then
+                        local meta = jsonc.parse(metadata)
+                        if meta == nil then
+                            local name = pkg:gsub("^(.-)%.json$", "%1")
+                            meta = {
+                                name = name,
+                                title = "{ " .. name .. " }",
+                                author = "<UNKNOWN>",
+                                version = "0.0.0",
+                                description = i18n.translate("This package is broken! Please reinstall or uninstall it."),
+                                depends = {},
+                                tags = {"broken"},
+                                broken = true,
+                            }
+                        end
+                        local metapkg = metapkgpre .. meta.name
+                        local status = ipkg.status(metapkg)
+                        if next(status) ~= nil then
+                            meta.time = tonumber(status[metapkg]["Installed-Time"])
+                            data[#data+1] = meta
+                        end
+                    end
+                end
+            end
+        end
+        result = data
+        fs.mkdirr(cachedir)
+        local oflags = nixio.open_flags("rdwr", "creat")
+        local mfile, code, msg = nixio.open(cachefile, oflags)
+        mfile:writeall(jsonc.stringify(result))
+        mfile:close()
+    else
+        result = jsonc.parse(fs.readfile(cachefile) or "")
+    end
+    lock:lock("ulock")
+    lock:close()
+    return result
+end
+
 function store_action(param)
     local metadir = "/usr/lib/opkg/meta"
     local metapkgpre = "app-meta-"
@@ -252,39 +333,7 @@ function store_action(param)
 
         ret = meta
     elseif action == "installed" then
-        local itr = fs.dir(metadir)
-        local data = {}
-        if itr then
-            local pkg
-            for pkg in itr do
-                if pkg:match("^.*%.json$") then
-                    local metadata = fs.readfile(metadir .. "/" .. pkg)
-                    if metadata ~= nil then
-                        local meta = json_parse(metadata)
-                        if meta == nil then
-                            local i18n = require("luci.i18n")
-                            local name = pkg:gsub("^(.-)%.json$", "%1")
-                            meta = {
-                                name = name,
-                                title = "{ " .. name .. " }",
-                                author = "<UNKNOWN>",
-                                version = "0.0.0",
-                                description = i18n.translate("This package is broken! Please reinstall or uninstall it."),
-                                depends = {},
-                                tags = {"broken"},
-                                broken = true,
-                            }
-                        end
-                        local metapkg = metapkgpre .. meta.name
-                        local status = ipkg.status(metapkg)
-                        if next(status) ~= nil then
-                            meta.time = tonumber(status[metapkg]["Installed-Time"])
-                            data[#data+1] = meta
-                        end
-                    end
-                end
-            end
-        end
+        local data = get_installed_and_cache()
         ret = data
     else
         local pkg = luci.http.formvalue("package")
@@ -294,8 +343,8 @@ function store_action(param)
         end
         local metapkg = pkg and (metapkgpre .. pkg) or ""
         if action == "update" or pkg then
-            if action == "update" or action == "install" then
-                if action == "install" and "1" == luci.http.formvalue("autoconf") then
+            if action == "update" or action == "install" or action == "autoconf" then
+                if (action == "install" and "1" == luci.http.formvalue("autoconf")) or action == "autoconf" then
                     local autoenv = "AUTOCONF=" .. pkg
                     local autopath = luci.http.formvalue("path")
                     local autoenable = luci.http.formvalue("enable")
@@ -406,6 +455,77 @@ function configured()
     local configured = nixio.fs.access("/etc/config/" .. uci)
     luci.http.prepare_content("application/json")
     luci.http.write_json({code=200, configured=configured})
+end
+
+function entrysh()
+    local package = luci.http.formvalue("package")
+    local hostname = luci.http.formvalue("hostname")
+    if hostname == nil or hostname == "" or not validate_pkgname(package) then
+        luci.http.status(400, "Bad Request")
+        return
+    end
+
+    local result
+    local entryfile = "/usr/libexec/istoree/" .. package .. ".sh"
+    if nixio.fs.access(entryfile) then
+        local o = luci.util.exec(entryfile .. " status " .. luci.util.shellquote(hostname))
+        if o == nil or o == "" then
+            result = {code=500, msg="entrysh execute failed"}
+        else
+            local jsonc = require "luci.jsonc"
+            local json_parse = jsonc.parse
+            local status = json_parse(o)
+            if status == nil then
+                result = {code=500, msg="json parse failed: " .. o}
+            else
+                result = {code=200, status=status}
+            end
+        end
+    else
+        result = {code=404, msg="entrysh of this package not found"}
+    end
+    luci.http.prepare_content("application/json")
+    luci.http.write_json(result)
+end
+
+function docker_check_dir()
+    local docker_on_system = luci.sys.call("/usr/libexec/istore/docker check_dir >/dev/null 2>&1") ~= 0
+    luci.http.prepare_content("application/json")
+    luci.http.write_json({code=200, docker_on_system=docker_on_system})
+end
+
+function docker_check_migrate()
+    local path = luci.http.formvalue("path")
+    if path == nil or path == "" then
+        luci.http.status(400, "Bad Request")
+        return
+    end
+    local r,o,e = is_exec("/usr/libexec/istore/docker migrate_check " .. luci.util.shellquote(path))
+    local result = "good"
+    if r == 1 then
+        result = "bad"
+    elseif r == 2 then
+        result = "existed"
+    end
+    luci.http.prepare_content("application/json")
+    luci.http.write_json({code=200, result=result, error=e})
+end
+
+function docker_migrate()
+    local path = luci.http.formvalue("path")
+    if path == nil or path == "" then
+        luci.http.status(400, "Bad Request")
+        return
+    end
+
+    local action = "migrate"
+    local overwrite = luci.http.formvalue("overwrite")
+    if overwrite == "chdir" then
+        action = "change_dir"
+    end
+    local r,o,e = is_exec("/usr/libexec/istore/docker " .. action .. " " .. luci.util.shellquote(path), true)
+    luci.http.prepare_content("application/json")
+    luci.http.write_json({code=r, stdout=o, stderr=e})
 end
 
 local function split(str,reps)
