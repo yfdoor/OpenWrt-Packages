@@ -290,10 +290,10 @@ load_acl() {
 			}
 
 			_acl_list=${TMP_ACL_PATH}/${sid}/rule_list
-			[ $use_interface = "1" ] && _acl_list=${TMP_ACL_PATH}/${sid}/interface_list
+			[ "$use_interface" = "1" ] && _acl_list=${TMP_ACL_PATH}/${sid}/interface_list
 
 			for i in $(cat $_acl_list); do
-				if [ $use_interface = "0" ]; then
+				if [ "$use_interface" = "0" ]; then
 					if [ -n "$(echo ${i} | grep '^iprange:')" ]; then
 						_iprange=$(echo ${i} | sed 's#iprange:##g')
 						_ipt_source=$(factor ${_iprange} "ip saddr")
@@ -846,9 +846,7 @@ add_firewall_rule() {
 		local shunt_ids=$(uci show $CONFIG | grep "=shunt_rules" | awk -F '.' '{print $2}' | awk -F '=' '{print $1}')
 		for shunt_id in $shunt_ids; do
 			insert_nftset $NFTSET_SHUNTLIST "0" $(config_n_get $shunt_id ip_list | tr -s "\r\n" "\n" | sed -e "/^$/d" | grep -E "(\.((2(5[0-5]|[0-4][0-9]))|[0-1]?[0-9]{1,2})){3}")
-			[ "$PROXY_IPV6" = "1" ] && {
-				insert_nftset $NFTSET_SHUNTLIST6 "0" $(config_n_get $shunt_id ip_list | tr -s "\r\n" "\n" | sed -e "/^$/d" | grep -E "([A-Fa-f0-9]{1,4}::?){1,7}[A-Fa-f0-9]{1,4}")
-			}
+			insert_nftset $NFTSET_SHUNTLIST6 "0" $(config_n_get $shunt_id ip_list | tr -s "\r\n" "\n" | sed -e "/^$/d" | grep -E "([A-Fa-f0-9]{1,4}::?){1,7}[A-Fa-f0-9]{1,4}")
 		done
 	}
 

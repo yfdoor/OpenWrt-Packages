@@ -760,6 +760,9 @@ msgstr "检查更新"
 msgid "Force update"
 msgstr "强制更新"
 
+msgid "The latest version: %s, currently does not support automatic update, if you need to update, please compile or download the ipk and then manually install."
+msgstr "最新版本：%s，目前暂不支持自动更新，如需更新，请自行编译或下载ipk然后手动安装。"
+
 msgid "Enable custom URL"
 msgstr "启用自定义规则地址"
 
@@ -1378,6 +1381,30 @@ msgstr "客户端文件不适合当前设备。"
 msgid "Can't move new file to path: %s"
 msgstr "无法移动新文件到：%s"
 
+msgid "XHTTP download splitting"
+msgstr "XHTTP 下行分离"
+
+msgid "Must be the same as upload path."
+msgstr "必须与上行 path 相同。"
+
+msgid "Enable XHTTP XMUX. It's not recommended to enable Mux.Cool at the same time."
+msgstr "启用 XHTTP XMUX。不建议与 Mux.Cool 同时启用。"
+
+msgid "XMUX Max Concurrency"
+msgstr "XMUX 连接最大复用流数"
+
+msgid "XMUX Max Connections"
+msgstr "XMUX 最大连接数"
+
+msgid "XMUX Connection Max Reuse Times"
+msgstr "XMUX 连接最多复用次数"
+
+msgid "XMUX Connection Max Lifetime (ms)"
+msgstr "XMUX 连接最大存活时间（ms）"
+
+msgid "Enable Mux.Cool"
+msgstr "启用 Mux.Cool"
+
 msgid "Mux concurrency"
 msgstr "最大并发连接数"
 
@@ -1542,3 +1569,18 @@ msgstr "落地节点"
 
 msgid "Only support a layer of proxy."
 msgstr "仅支持一层代理。"
+
+msgid "Set the default domain resolution strategy for the sing-box node."
+msgstr "为 sing-box 节点设置默认的域名解析策略。"
+
+msgid "Prefer IPv4"
+msgstr "IPv4 优先"
+
+msgid "Prefer IPv6"
+msgstr "IPv6 优先"
+
+msgid "IPv4 Only"
+msgstr "仅 IPv4"
+
+msgid "IPv6 Only"
+msgstr "仅 IPv6"
