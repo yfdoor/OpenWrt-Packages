@@ -1,13 +1,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=mihomo
-PKG_RELEASE:=2
+PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/MetaCubeX/mihomo.git
-PKG_SOURCE_DATE:=2024-11-14
-PKG_SOURCE_VERSION:=de19f927e86573a7a97159e3b9925049f06d4563
-PKG_MIRROR_HASH:=931d397995b2da9e97f3f050d4650fa9013980d6c523df40bca3b58822a42409
+PKG_SOURCE_DATE:=2024-11-24
+PKG_SOURCE_VERSION:=eb985b002e5aa61c4c2208646f33180c4fc938f9
+PKG_MIRROR_HASH:=058ca55e42cbebecfa0b65b5b8f792bfba8c5240cfa43c44a017d0bdab498230
 
 PKG_LICENSE:=MIT
 PKG_MAINTAINER:=Joseph Mory <morytyann@gmail.com>
@@ -16,7 +16,7 @@ PKG_BUILD_DEPENDS:=golang/host
 PKG_BUILD_PARALLEL:=1
 PKG_BUILD_FLAGS:=no-mips16
 
-PKG_BUILD_VERSION:=alpha-de19f92
+PKG_BUILD_VERSION:=alpha-eb985b0
 PKG_BUILD_TIME:=$(shell date -u -Iseconds)
 
 GO_PKG:=github.com/metacubex/mihomo
@@ -59,8 +59,8 @@ define Package/mihomo/install
 
 	$(INSTALL_DATA) $(CURDIR)/files/mixin.yaml $(1)/etc/mihomo/mixin.yaml
 
-	$(INSTALL_BIN) $(CURDIR)/files/scripts/constants.sh $(1)/etc/mihomo/scripts/constants.sh
-	$(INSTALL_BIN) $(CURDIR)/files/scripts/tun.sh $(1)/etc/mihomo/scripts/tun.sh
+	$(INSTALL_BIN) $(CURDIR)/files/scripts/include.sh $(1)/etc/mihomo/scripts/include.sh
+	$(INSTALL_BIN) $(CURDIR)/files/scripts/firewall_include.sh $(1)/etc/mihomo/scripts/firewall_include.sh
 
 	$(INSTALL_BIN) $(CURDIR)/files/nftables/hijack.nft $(1)/etc/mihomo/nftables/hijack.nft
 	$(INSTALL_BIN) $(CURDIR)/files/nftables/reserved_ip.nft $(1)/etc/mihomo/nftables/reserved_ip.nft
