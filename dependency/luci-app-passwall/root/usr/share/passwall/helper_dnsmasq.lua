@@ -90,8 +90,8 @@ end
 
 function logic_restart(var)
 	local LOG = var["-LOG"]
-	local file = io.open(api.TMP_PATH .. "/default_DNS", "r")
-	if file then
+	local DEFAULT_DNS = api.get_cache_var("DEFAULT_DNS")
+	if DEFAULT_DNS then
 		backup_servers()
 		--sys.call("sed -i '/list server/d' /etc/config/dhcp >/dev/null 2>&1")
 		local dns_table = {}
@@ -127,8 +127,9 @@ function copy_instance(var)
 		if line:find("passwall") then filter = true end
 		if line:find("ubus") then filter = true end
 		if line:find("dhcp") then filter = true end
-		if line:find("server") then filter = true end
-		if line:find("port") then filter = true end
+		if line:find("server=") == 1 then filter = true end
+		if line:find("port=") == 1 then filter = true end
+		if line:find("address=") == 1 or (line:find("server=") == 1 and line:find("/")) then filter = nil end
 		if not filter then
 			tinsert(conf_lines, line)
 		end
@@ -498,8 +499,8 @@ function add_rule(var)
 			local t = uci:get_all(appname, TCP_NODE)
 			local default_node_id = t["default_node"] or "_direct"
 			uci:foreach(appname, "shunt_rules", function(s)
-				local _node_id = t[s[".name"]] or "nil"
-				if _node_id ~= "nil" and _node_id ~= "_blackhole" then
+				local _node_id = t[s[".name"]]
+				if _node_id and _node_id ~= "_blackhole" then
 					if _node_id == "_default" then
 						_node_id = default_node_id
 					end
@@ -621,8 +622,9 @@ function add_rule(var)
 				if line:find("passwall") then filter = true end
 				if line:find("ubus") then filter = true end
 				if line:find("dhcp") then filter = true end
-				if line:find("server") then filter = true end
-				if line:find("port") then filter = true end
+				if line:find("server=") == 1 then filter = true end
+				if line:find("port=") == 1 then filter = true end
+				if line:find("address=") == 1 or (line:find("server=") == 1 and line:find("/")) then filter = nil end
 				if not filter then
 					tinsert(conf_lines, line)
 				end
@@ -646,9 +648,7 @@ function add_rule(var)
 			end
 
 			if FLAG == "default" then
-				local f_out = io.open("/tmp/etc/passwall/default_DNS", "a")
-				f_out:write(DEFAULT_DNS)
-				f_out:close()
+				api.set_cache_var("DEFAULT_DNS", DEFAULT_DNS)
 			end
 		end
 		if #conf_lines > 0 then
