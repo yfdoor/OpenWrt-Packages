@@ -7,27 +7,36 @@
 'require ui';
 'require validation';
 
-var rulesetdoc = 'data:text/html;base64,' + 'cmxzdHBsYWNlaG9sZGVy';
+const rulesetdoc = 'data:text/html;base64,' + 'cmxzdHBsYWNlaG9sZGVy';
 
-var sharktaikogif = function() {
+const sharktaikogif = function() {
 	return 'data:image/gif;base64,' +
 'c2hhcmstdGFpa28uZ2lm'
 }()
 
-return baseclass.extend({
-	rulesetdoc: rulesetdoc,
-	sharktaikogif: sharktaikogif,
+const monospacefonts = [
+	'"Cascadia Code"',
+	'"Cascadia Mono"',
+	'Menlo',
+	'Monaco',
+	'Consolas',
+	'"Liberation Mono"',
+	'"Courier New"',
+	'monospace'
+];
 
-	monospacefonts: [
-		'"Cascadia Code"',
-		'"Cascadia Mono"',
-		'Menlo',
-		'Monaco',
-		'Consolas',
-		'"Liberation Mono"',
-		'"Courier New"',
-		'monospace'
-	],
+const routing_port_type = [
+	['all', _('All ports')],
+	['common_tcpport', _('Common ports only (bypass P2P traffic)')],
+	['common_udpport', _('Common ports only (bypass P2P traffic)')],
+	['stun_port', _('STUN ports')],
+	['turn_port', _('TURN ports')],
+];
+
+return baseclass.extend({
+	rulesetdoc,
+	sharktaikogif,
+	monospacefonts,
 
 	dashrepos: [
 		['zephyruso/zashboard', _('zashboard')],
@@ -125,6 +134,8 @@ return baseclass.extend({
 		['load-balance', _('Load balance')],
 		//['relay', _('Relay')], // Deprecated
 	],
+
+	routing_port_type,
 
 	rules_type: [
 		['DOMAIN'],
@@ -229,19 +240,40 @@ return baseclass.extend({
 		['random']
 	],
 
-	// thanks to homeproxy
+	CBIListValue: form.ListValue.extend({
+		renderWidget(/* ... */) {
+			let frameEl = form.ListValue.prototype.renderWidget.apply(this, arguments);
+
+			frameEl.querySelector('select').style["min-width"] = '10em';
+
+			return frameEl;
+		}
+	}),
+
 	CBIStaticList: form.DynamicList.extend({
 		__name__: 'CBI.StaticList',
 
-		renderWidget: function(/* ... */) {
-			var dl = form.DynamicList.prototype.renderWidget.apply(this, arguments);
-			dl.querySelector('.add-item ul > li[data-value="-"]').remove();
-			return dl;
+		renderWidget(/* ... */) {
+			let El = form.DynamicList.prototype.renderWidget.apply(this, arguments);
+
+			El.querySelector('.add-item ul > li[data-value="-"]')?.remove();
+
+			return El;
+		}
+	}),
+
+	CBITextValue: form.TextValue.extend({
+		renderWidget(/* ... */) {
+			let frameEl = form.TextValue.prototype.renderWidget.apply(this, arguments);
+
+			frameEl.querySelector('textarea').style.fontFamily = monospacefonts.join(',');
+
+			return frameEl;
 		}
 	}),
 
 	// thanks to homeproxy
-	calcStringMD5: function(e) {
+	calcStringMD5(e) {
 		/* Thanks to https://stackoverflow.com/a/41602636 */
 		function h(a, b) {
 			var c, d, e, f, g;
@@ -323,13 +355,13 @@ return baseclass.extend({
 	},
 
 	// thanks to homeproxy
-	decodeBase64Str: function(str) {
+	decodeBase64Str(str) {
 		if (!str)
 			return null;
 
 		/* Thanks to luci-app-ssr-plus */
 		str = str.replace(/-/g, '+').replace(/_/g, '/');
-		var padding = (4 - (str.length % 4)) % 4;
+		let padding = (4 - (str.length % 4)) % 4;
 		if (padding)
 			str = str + Array(padding + 1).join('=');
 
@@ -338,8 +370,8 @@ return baseclass.extend({
 		).join(''));
 	},
 
-	generateRand: function(type, length) {
-		var byteArr;
+	generateRand(type, length) {
+		let byteArr;
 		if (['base64', 'hex'].includes(type))
 			byteArr = crypto.getRandomValues(new Uint8Array(length));
 		switch (type) {
@@ -361,32 +393,35 @@ return baseclass.extend({
 		};
 	},
 
-	removeBlankAttrs: function(self, res) {
-		let content;
-
-		if (res?.constructor === Object) {
-			content = {};
-			Object.keys(res).map((k) => {
-				if ([Array, Object].includes(res[k]?.constructor))
-					content[k] = self.removeBlankAttrs(self, res[k]);
-				else if (res[k] !== null && res[k] !== '')
-					content[k] = res[k];
-			});
-		} else if (res?.constructor === Array) {
-			content = [];
-			res.map((k, i) => {
-				if ([Array, Object].includes(k?.constructor))
-					content.push(self.removeBlankAttrs(self, k));
-				else if (k !== null && k !== '')
-					content.push(k);
-			});
-		} else
-			return res;
-
-		return content;
+	isEmpty(res) {
+		if (res == null) return true;                                                // null, undefined
+		if (typeof res === 'string' || Array.isArray(res)) return res.length === 0;  // empty String/Array
+		if (typeof res === 'object') {
+			if (res instanceof Map || res instanceof Set) return res.size === 0;     // empty Map/Set
+			return Object.keys(res).length === 0;                                    // empty Object
+		}
+		return false;
 	},
 
-	getFeatures: function() {
+	removeBlankAttrs(self, res) {
+		if (Array.isArray(res)) {
+			return res
+				.filter(item => !self.isEmpty(item))
+				.map(item => self.removeBlankAttrs(self, item));
+		}
+		if (res !== null && typeof res === 'object') {
+			const obj = {};
+			for (const key in res) {
+				const val = self.removeBlankAttrs(self, res[key]);
+				if (!self.isEmpty(val))
+					obj[key] = val;
+			}
+			return obj;
+		}
+		return res;
+	},
+
+	getFeatures() {
 		const callGetFeatures = rpc.declare({
 			object: 'luci.fchomo',
 			method: 'get_features',
@@ -396,7 +431,7 @@ return baseclass.extend({
 		return L.resolveDefault(callGetFeatures(), {});
 	},
 
-	getServiceStatus: function(instance) {
+	getServiceStatus(instance) {
 		var conf = 'fchomo';
 		const callServiceList = rpc.declare({
 			object: 'service',
@@ -407,7 +442,7 @@ return baseclass.extend({
 
 		return L.resolveDefault(callServiceList(conf), {})
 			.then((res) => {
-				var isRunning = false;
+				let isRunning = false;
 				try {
 					isRunning = res[conf]['instances'][instance].running;
 				} catch (e) {}
@@ -415,7 +450,7 @@ return baseclass.extend({
 			});
 	},
 
-	getClashAPI: function(instance) {
+	getClashAPI(instance) {
 		const callGetClashAPI = rpc.declare({
 			object: 'luci.fchomo',
 			method: 'get_clash_api',
@@ -427,8 +462,8 @@ return baseclass.extend({
 	},
 
 	// thanks to homeproxy
-	loadDefaultLabel: function(section_id) {
-		var label = uci.get(this.config, section_id, 'label');
+	loadDefaultLabel(section_id) {
+		const label = uci.get(this.config, section_id, 'label');
 		if (label) {
 			return label;
 		} else {
@@ -438,12 +473,12 @@ return baseclass.extend({
 	},
 
 	// thanks to homeproxy
-	loadModalTitle: function(title, addtitle, section_id) {
-		var label = uci.get(this.config, section_id, 'label');
+	loadModalTitle(title, addtitle, section_id) {
+		const label = uci.get(this.config, section_id, 'label');
 		return label ? title + ' » ' + label : addtitle;
 	},
 
-	loadProxyGroupLabel: function(preadds, section_id) {
+	loadProxyGroupLabel(preadds, section_id) {
 		delete this.keylist;
 		delete this.vallist;
 
@@ -458,11 +493,13 @@ return baseclass.extend({
 		return this.super('load', section_id);
 	},
 
-	loadNodeLabel: function(section_id) {
+	loadNodeLabel(preadds, section_id) {
 		delete this.keylist;
 		delete this.vallist;
 
-		this.value('', _('-- Please choose --'));
+		preadds?.forEach((arr) => {
+			this.value.apply(this, arr);
+		});
 		uci.sections(this.config, 'node', (res) => {
 			if (res.enabled !== '0')
 				this.value(res['.name'], res.label);
@@ -471,11 +508,13 @@ return baseclass.extend({
 		return this.super('load', section_id);
 	},
 
-	loadProviderLabel: function(section_id) {
+	loadProviderLabel(preadds, section_id) {
 		delete this.keylist;
 		delete this.vallist;
 
-		this.value('', _('-- Please choose --'));
+		preadds?.forEach((arr) => {
+			this.value.apply(this, arr);
+		});
 		uci.sections(this.config, 'provider', (res) => {
 			if (res.enabled !== '0')
 				this.value(res['.name'], res.label);
@@ -484,11 +523,13 @@ return baseclass.extend({
 		return this.super('load', section_id);
 	},
 
-	loadRulesetLabel: function(behaviors, section_id) {
+	loadRulesetLabel(preadds, behaviors, section_id) {
 		delete this.keylist;
 		delete this.vallist;
 
-		this.value('', _('-- Please choose --'));
+		preadds?.forEach((arr) => {
+			this.value.apply(this, arr);
+		});
 		uci.sections(this.config, 'ruleset', (res) => {
 			if (res.enabled !== '0')
 				if (behaviors ? behaviors.includes(res.behavior) : true)
@@ -498,11 +539,13 @@ return baseclass.extend({
 		return this.super('load', section_id);
 	},
 
-	loadSubRuleGroup: function(section_id) {
+	loadSubRuleGroup(preadds, section_id) {
 		delete this.keylist;
 		delete this.vallist;
 
-		this.value('', _('-- Please choose --'));
+		preadds?.forEach((arr) => {
+			this.value.apply(this, arr);
+		});
 		let groups = {};
 		uci.sections(this.config, 'subrules', (res) => {
 			if (res.enabled !== '0')
@@ -515,8 +558,8 @@ return baseclass.extend({
 		return this.super('load', section_id);
 	},
 
-	renderStatus: function(self, ElId, isRunning, instance, noGlobal) {
-		var visible = isRunning && (isRunning.http || isRunning.https);
+	renderStatus(self, ElId, isRunning, instance, noGlobal) {
+		const visible = isRunning && (isRunning.http || isRunning.https);
 
 		return E([
 			E('button', {
@@ -532,7 +575,7 @@ return baseclass.extend({
 			}, [ _('Open Dashboard') ])
 		]);
 	},
-	updateStatus: function(self, El, isRunning, instance, noGlobal) {
+	updateStatus(self, El, isRunning, instance, noGlobal) {
 		if (El) {
 			El.style.color = isRunning ? 'green' : 'red';
 			El.innerHTML = '&ensp;%s%s&ensp;'.format(noGlobal ? instance + ' ' : '', isRunning ? _('Running') : _('Not Running'));
@@ -551,24 +594,24 @@ return baseclass.extend({
 
 		return El;
 	},
-	getDashURL: function(self, isRunning) {
-		var tls = isRunning.https ? 's' : '',
-			host = window.location.hostname,
-			port = isRunning.https ? isRunning.https.split(':').pop() : isRunning.http.split(':').pop(),
-			secret = isRunning.secret,
-			repo = isRunning.dashboard_repo;
+	getDashURL(self, isRunning) {
+		const tls = isRunning.https ? 's' : '';
+		const host = window.location.hostname;
+		const port = isRunning.https ? isRunning.https.split(':').pop() : isRunning.http.split(':').pop();
+		const secret = isRunning.secret;
+		const repo = isRunning.dashboard_repo;
 
 		return 'http%s://%s:%s/ui/'.format(tls, host, port) +
 			String.format(self.dashrepos_urlparams[repo] || '', host, port, secret)
 	},
 
-	renderResDownload: function(self, section_id) {
-		var section_type = this.section.sectiontype;
-		var type = uci.get(this.config, section_id, 'type'),
-			url = uci.get(this.config, section_id, 'url'),
-			header = uci.get(this.config, section_id, 'header');
+	renderResDownload(self, section_id) {
+		const section_type = this.section.sectiontype;
+		const type = uci.get(this.config, section_id, 'type');
+		const url = uci.get(this.config, section_id, 'url');
+		const header = uci.get(this.config, section_id, 'header');
 
-		var El = E([
+		let El = E([
 			E('button', {
 				class: 'cbi-button cbi-button-add',
 				disabled: (type !== 'http') || null,
@@ -588,13 +631,13 @@ return baseclass.extend({
 		return El;
 	},
 
-	renderSectionAdd: function(prefmt, LC, extra_class) {
-		var el = form.GridSection.prototype.renderSectionAdd.apply(this, [ extra_class ]),
+	renderSectionAdd(prefmt, LC, extra_class) {
+		let el = form.GridSection.prototype.renderSectionAdd.apply(this, [ extra_class ]),
 			nameEl = el.querySelector('.cbi-section-create-name');
 		ui.addValidator(nameEl, 'uciname', true, (v) => {
-			var button = el.querySelector('.cbi-section-create > .cbi-button-add');
-			var prefix = prefmt?.prefix ? prefmt.prefix : '',
-				suffix = prefmt?.suffix ? prefmt.suffix : '';
+			let button = el.querySelector('.cbi-section-create > .cbi-button-add');
+			const prefix = prefmt?.prefix ? prefmt.prefix : '';
+			const suffix = prefmt?.suffix ? prefmt.suffix : '';
 
 			if (!v) {
 				button.disabled = true;
@@ -617,15 +660,15 @@ return baseclass.extend({
 		return el;
 	},
 
-	handleAdd: function(prefmt, ev, name) {
-		var prefix = prefmt?.prefix ? prefmt.prefix : '',
-			suffix = prefmt?.suffix ? prefmt.suffix : '';
+	handleAdd(prefmt, ev, name) {
+		const prefix = prefmt?.prefix ? prefmt.prefix : '';
+		const suffix = prefmt?.suffix ? prefmt.suffix : '';
 
 		return form.GridSection.prototype.handleAdd.apply(this, [ ev, prefix + name + suffix ]);
 	},
 
-	handleReload: function(instance, ev, section_id) {
-		var instance = instance || '';
+	handleReload(instance, ev, section_id) {
+		instance = instance || '';
 		return fs.exec('/etc/init.d/fchomo', ['reload', instance])
 			.then((res) => { /* return window.location = window.location.href.split('#')[0] */ })
 			.catch((e) => {
@@ -633,8 +676,8 @@ return baseclass.extend({
 			})
 	},
 
-	handleRemoveIdles: function(self) {
-		var section_type = this.sectiontype;
+	handleRemoveIdles(self) {
+		const section_type = this.sectiontype;
 
 		let loaded = [];
 		uci.sections(this.config, section_type, (section, sid) => loaded.push(sid));
@@ -677,14 +720,14 @@ return baseclass.extend({
 		});
 	},
 
-	textvalue2Value: function(section_id) {
-		var cval = this.cfgvalue(section_id);
-		var i = this.keylist.indexOf(cval);
+	textvalue2Value(section_id) {
+		let cval = this.cfgvalue(section_id);
+		let i = this.keylist.indexOf(cval);
 
 		return this.vallist[i];
 	},
 
-	validateAuth: function(section_id, value) {
+	validateAuth(section_id, value) {
 		if (!value)
 			return true;
 		if (!value.match(/^[\w-]{3,}:[^:]+$/))
@@ -692,7 +735,7 @@ return baseclass.extend({
 
 		return true;
 	},
-	validateAuthUsername: function(section_id, value) {
+	validateAuthUsername(section_id, value) {
 		if (!value)
 			return true;
 		if (!value.match(/^[\w-]{3,}$/))
@@ -700,7 +743,7 @@ return baseclass.extend({
 
 		return true;
 	},
-	validateAuthPassword: function(section_id, value) {
+	validateAuthPassword(section_id, value) {
 		if (!value)
 			return true;
 		if (!value.match(/^[^:]+$/))
@@ -709,41 +752,51 @@ return baseclass.extend({
 		return true;
 	},
 
-	validateCommonPort: function(section_id, value) {
+	validateCommonPort(section_id, value) {
 		// thanks to homeproxy
-		var stubValidator = {
+		let stubValidator = {
 			factory: validation,
-			apply: function(type, value, args) {
+			apply(type, value, args) {
 				if (value != null)
 					this.value = value;
 
 				return validation.types[type].apply(this, args);
 			},
-			assert: function(condition) {
+			assert(condition) {
 				return !!condition;
 			}
 		};
 
-		if (value && !value.match(/common(_stun)?/)) {
-			var ports = [];
-			for (var i of value.split(',')) {
-				if (!stubValidator.apply('port', i) && !stubValidator.apply('portrange', i))
-					return _('Expecting: %s').format(_('valid port value'));
-				if (ports.includes(i))
-					return _('Port %s alrealy exists!').format(i);
-				ports = ports.concat(i);
+		const arr = value.trim().split(' ');
+
+		if (arr.length === 0 || arr.includes(''))
+			return _('Expecting: %s').format(_('non-empty value'));
+
+		if (arr.length > 1 && arr.includes('all'))
+			return _('Expecting: %s').format(_('If All ports is selected, uncheck others'));
+
+		for (let custom of arr) {
+			if (!routing_port_type.map(e => e[0]).includes(custom)) {
+				let ports = [];
+				for (let i of custom.split(',')) {
+					if (!stubValidator.apply('port', i) && !stubValidator.apply('portrange', i))
+						return _('Expecting: %s').format(_('valid port value'));
+					if (ports.includes(i))
+						return _('Port %s alrealy exists!').format(i);
+					ports = ports.concat(i);
+				}
 			}
 		}
 
 		return true;
 	},
 
-	validateJson: function(section_id, value) {
+	validateJson(section_id, value) {
 		if (!value)
 			return true;
 
 		try {
-			var obj = JSON.parse(value.trim());
+			let obj = JSON.parse(value.trim());
 			if (!obj)
 				return _('Expecting: %s').format(_('valid JSON format'));
 		}
@@ -754,7 +807,7 @@ return baseclass.extend({
 		return true;
 	},
 
-	validateBase64Key: function(length, section_id, value) {
+	validateBase64Key(length, section_id, value) {
 		/* Thanks to luci-proto-wireguard */
 		if (value)
 			if (value.length !== length || !value.match(/^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/) || value[length-1] !== '=')
@@ -763,8 +816,8 @@ return baseclass.extend({
 		return true;
 	},
 
-	validateShadowsocksPassword: function(self, encmode, section_id, value) {
-		var length = self.shadowsocks_cipher_length[encmode];
+	validateShadowsocksPassword(self, encmode, section_id, value) {
+		let length = self.shadowsocks_cipher_length[encmode];
 		if (typeof length !== 'undefined') {
 			length = Math.ceil(length/3)*4;
 			if (encmode.match(/^2022-/)) {
@@ -781,7 +834,7 @@ return baseclass.extend({
 		return true;
 	},
 
-	validateBytesize: function(section_id, value) {
+	validateBytesize(section_id, value) {
 		if (!value)
 			return true;
 
@@ -790,7 +843,7 @@ return baseclass.extend({
 
 		return true;
 	},
-	validateTimeDuration: function(section_id, value) {
+	validateTimeDuration(section_id, value) {
 		if (!value)
 			return true;
 
@@ -800,11 +853,11 @@ return baseclass.extend({
 		return true;
 	},
 
-	validateUniqueValue: function(section_id, value) {
+	validateUniqueValue(section_id, value) {
 		if (!value)
 			return _('Expecting: %s').format(_('non-empty value'));
 
-		var duplicate = false;
+		let duplicate = false;
 		uci.sections(this.config, this.section.sectiontype, (res) => {
 			if (res['.name'] !== section_id)
 				if (res[this.option] === value)
@@ -816,12 +869,12 @@ return baseclass.extend({
 		return true;
 	},
 
-	validateUrl: function(section_id, value) {
+	validateUrl(section_id, value) {
 		if (!value)
 			return true;
 
 		try {
-			var url = new URL(value);
+			let url = new URL(value);
 			if (!url.hostname)
 				return _('Expecting: %s').format(_('valid URL'));
 		}
@@ -832,7 +885,7 @@ return baseclass.extend({
 		return true;
 	},
 
-	validateUUID: function(section_id, value) {
+	validateUUID(section_id, value) {
 		if (!value)
 			return true;
 		else if (value.match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') === null)
@@ -841,7 +894,7 @@ return baseclass.extend({
 		return true;
 	},
 
-	lsDir: function(type) {
+	lsDir(type) {
 		const callLsDir = rpc.declare({
 			object: 'luci.fchomo',
 			method: 'dir_ls',
@@ -857,7 +910,7 @@ return baseclass.extend({
 		});
 	},
 
-	readFile: function(type, filename) {
+	readFile(type, filename) {
 		const callReadFile = rpc.declare({
 			object: 'luci.fchomo',
 			method: 'file_read',
@@ -873,7 +926,7 @@ return baseclass.extend({
 		});
 	},
 
-	writeFile: function(type, filename, content) {
+	writeFile(type, filename, content) {
 		const callWriteFile = rpc.declare({
 			object: 'luci.fchomo',
 			method: 'file_write',
@@ -889,7 +942,7 @@ return baseclass.extend({
 		});
 	},
 
-	downloadFile: function(type, filename, url, header) {
+	downloadFile(type, filename, url, header) {
 		const callDownloadFile = rpc.declare({
 			object: 'luci.fchomo',
 			method: 'file_download',
@@ -905,7 +958,7 @@ return baseclass.extend({
 		});
 	},
 
-	removeFile: function(type, filename) {
+	removeFile(type, filename) {
 		const callRemoveFile = rpc.declare({
 			object: 'luci.fchomo',
 			method: 'file_remove',
@@ -922,7 +975,7 @@ return baseclass.extend({
 	},
 
 	// thanks to homeproxy
-	uploadCertificate: function(type, filename, ev) {
+	uploadCertificate(type, filename, ev) {
 		const callWriteCertificate = rpc.declare({
 			object: 'luci.fchomo',
 			method: 'certificate_write',
@@ -941,7 +994,7 @@ return baseclass.extend({
 		}, this, ev.target))
 		.catch((e) => { ui.addNotification(null, E('p', e.message)) });
 	},
-	uploadInitialPack: function(ev, section_id) {
+	uploadInitialPack(ev, section_id) {
 		const callWriteInitialPack = rpc.declare({
 			object: 'luci.fchomo',
 			method: 'initialpack_write',

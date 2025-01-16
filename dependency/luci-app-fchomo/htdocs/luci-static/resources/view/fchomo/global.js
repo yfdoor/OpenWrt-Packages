@@ -45,10 +45,10 @@ function handleResUpdate(type, repo) {
 	});
 
 	// Dynamic repo
-	var label;
+	let label;
 	if (repo) {
-		var section_id = this.section.section;
-		var weight = document.getElementById(this.cbid(section_id));
+		const section_id = this.section.section;
+		let weight = document.getElementById(this.cbid(section_id));
 		if (weight)
 			repo = weight.firstChild.value,
 			label = weight.firstChild.selectedOptions[0].label;
@@ -79,7 +79,7 @@ function handleResUpdate(type, repo) {
 
 function renderResVersion(El, type, repo) {
 	return L.resolveDefault(callResVersion(type, repo), {}).then((res) => {
-		var resEl = E([
+		let resEl = E([
 			E('button', {
 				'class': 'cbi-button cbi-button-apply',
 				'click': ui.createHandlerFn(this, handleResUpdate, type, repo)
@@ -107,7 +107,7 @@ function updateResVersion(El, version) {
 }
 
 function renderNATBehaviorTest(El) {
-	var resEl = E('div',  { 'class': 'control-group' }, [
+	let resEl = E('div',  { 'class': 'control-group' }, [
 		E('select', {
 			'id': '_status_nattest_l4proto',
 			'class': 'cbi-input-select',
@@ -119,9 +119,9 @@ function renderNATBehaviorTest(El) {
 		E('button', {
 			'class': 'cbi-button cbi-button-apply',
 			'click': ui.createHandlerFn(this, function() {
-				var stun = this.formvalue(this.section.section);
-				var l4proto = document.getElementById('_status_nattest_l4proto').value;
-				var l4proto_idx = document.getElementById('_status_nattest_l4proto').selectedIndex;
+				const stun = this.formvalue(this.section.section);
+				const l4proto = document.getElementById('_status_nattest_l4proto').value;
+				const l4proto_idx = document.getElementById('_status_nattest_l4proto').selectedIndex;
 
 				return fs.exec_direct('/etc/fchomo/scripts/natcheck.sh', [stun, l4proto, getRandom(32768, 61000)]).then((stdout) => {
 					this.description = '<details><summary>' + _('Expand/Collapse result') + '</summary>' + stdout + '</details>';
@@ -144,7 +144,7 @@ function renderNATBehaviorTest(El) {
 }
 
 return view.extend({
-	load: function() {
+	load() {
 		return Promise.all([
 			uci.load('fchomo'),
 			hm.getFeatures(),
@@ -158,17 +158,17 @@ return view.extend({
 		]);
 	},
 
-	render: function(data) {
-		var features = data[1],
-		    hosts = data[2]?.hosts,
-		    CisRunning = data[3],
-		    CclashAPI = data[4],
-		    SisRunning = data[5],
-		    SclashAPI = data[6],
-		    res_ver_geoip = data[7],
-		    res_ver_geosite = data[8];
+	render(data) {
+		const features = data[1];
+		const hosts = data[2]?.hosts;
+		const CisRunning = data[3];
+		const CclashAPI = data[4];
+		const SisRunning = data[5];
+		const SclashAPI = data[6];
+		const res_ver_geoip = data[7];
+		const res_ver_geosite = data[8];
 
-		var dashboard_repo = uci.get(data[0], 'api', 'dashboard_repo');
+		const dashboard_repo = uci.get(data[0], 'api', 'dashboard_repo');
 
 		let m, s, o, ss, so;
 
@@ -224,13 +224,13 @@ return view.extend({
 				expect: { '': {} }
 			});
 
-			var ElId = '_connection_check_results';
+			const ElId = '_connection_check_results';
 
 			return E([
 				E('button', {
 					'class': 'cbi-button cbi-button-apply',
 					'click': ui.createHandlerFn(this, function() {
-						var weight = document.getElementById(ElId);
+						let weight = document.getElementById(ElId);
 
 						weight.innerHTML = '';
 						return hm.checkurls.forEach((site) => {
@@ -258,7 +258,7 @@ return view.extend({
 			so.readonly = true;
 		} else {
 			so.renderWidget = function(/* ... */) {
-				var El = form.Value.prototype.renderWidget.apply(this, arguments);
+				let El = form.Value.prototype.renderWidget.apply(this, arguments);
 
 				return renderNATBehaviorTest.call(this, El);
 			}
@@ -317,7 +317,7 @@ return view.extend({
 			so.value.apply(so, repo);
 		})
 		so.renderWidget = function(/* ... */) {
-			var El = form.ListValue.prototype.renderWidget.apply(this, arguments);
+			let El = form.ListValue.prototype.renderWidget.apply(this, arguments);
 
 			El.classList.add('control-group');
 			El.firstChild.style.width = '10em';
@@ -327,7 +327,7 @@ return view.extend({
 		so.onchange = function(ev, section_id, value) {
 			this.default = value;
 
-			var weight = ev.target;
+			let weight = ev.target;
 			if (weight)
 				return L.resolveDefault(callResVersion('dashboard', value), {}).then((res) => {
 					updateResVersion(weight.lastChild, res.version);
@@ -463,24 +463,15 @@ return view.extend({
 		o = s.taboption('inbound', form.SectionValue, '_inbound', form.NamedSection, 'inbound', 'fchomo', _('Tun settings'));
 		ss = o.subsection;
 
-		so = ss.option(form.ListValue, 'tun_stack', _('Stack'),
+		so = ss.option(form.RichListValue, 'tun_stack', _('Stack'),
 			_('Tun stack.'));
-		so.value('system', _('System'));
+		so.value('system', _('System'), _('Less compatibility and sometimes better performance.'));
 		if (features.with_gvisor) {
-			so.value('gvisor', _('gVisor'));
-			so.value('mixed', _('Mixed'));
+			so.value('gvisor', _('gVisor'), _('Based on google/gvisor.'));
+			so.value('mixed', _('Mixed'), _('Mixed <code>system</code> TCP stack and <code>gVisor</code> UDP stack.'));
 		}
 		so.default = 'system';
 		so.rmempty = false;
-		so.onchange = function(ev, section_id, value) {
-			var desc = ev.target.nextSibling;
-			if (value === 'mixed')
-				desc.innerHTML = _('Mixed <code>system</code> TCP stack and <code>gVisor</code> UDP stack.');
-			else if (value === 'gvisor')
-				desc.innerHTML = _('Based on google/gvisor.');
-			else if (value === 'system')
-				desc.innerHTML = _('Less compatibility and sometimes better performance.');
-		}
 
 		so = ss.option(form.Value, 'tun_mtu', _('MTU'));
 		so.datatype = 'uinteger';
@@ -538,7 +529,6 @@ return view.extend({
 			delete this.keylist;
 			delete this.vallist;
 
-			this.value('', _('-- Please choose --'));
 			hm.dashrepos.forEach((repo) => {
 				L.resolveDefault(callResVersion('dashboard', repo[0]), {}).then((res) => {
 					this.value(repo[0], repo[1] + ' - ' + (res.version || _('Not Installed')));
@@ -726,18 +716,22 @@ return view.extend({
 		/* Routing control */
 		ss.tab('routing_control', _('Routing Control'));
 
-		so = ss.taboption('routing_control', form.Value, 'routing_tcpport', _('Routing ports') + ' (TCP)',
+		so = ss.taboption('routing_control', form.MultiValue, 'routing_tcpport', _('Routing ports') + ' (TCP)',
 			_('Specify target ports to be proxied. Multiple ports must be separated by commas.'));
-		so.value('', _('All ports'));
-		so.value('common', _('Common ports only (bypass P2P traffic)'));
-		so.value('common_stun', _('Common and STUN ports'));
+		so.create = true;
+		hm.routing_port_type.forEach((res) => {
+			if (res[0] !== 'common_udpport')
+				so.value.apply(so, res);
+		})
 		so.validate = L.bind(hm.validateCommonPort, so);
 
-		so = ss.taboption('routing_control', form.Value, 'routing_udpport', _('Routing ports') + ' (UDP)',
+		so = ss.taboption('routing_control', form.MultiValue, 'routing_udpport', _('Routing ports') + ' (UDP)',
 			_('Specify target ports to be proxied. Multiple ports must be separated by commas.'));
-		so.value('', _('All ports'));
-		so.value('common', _('Common ports only (bypass P2P traffic)'));
-		so.value('common_stun', _('Common and STUN ports'));
+		so.create = true;
+		hm.routing_port_type.forEach((res) => {
+			if (res[0] !== 'common_tcpport')
+				so.value.apply(so, res);
+		})
 		so.validate = L.bind(hm.validateCommonPort, so);
 
 		so = ss.taboption('routing_control', form.ListValue, 'routing_mode', _('Routing mode'),
@@ -780,14 +774,7 @@ return view.extend({
 		/* Custom Direct list */
 		ss.tab('direct_list', _('Custom Direct List'));
 
-		so = ss.taboption('direct_list', form.TextValue, 'direct_list.yaml', null);
-		so.renderWidget = function(/* ... */) {
-			var frameEl = form.TextValue.prototype.renderWidget.apply(this, arguments);
-
-			frameEl.querySelector('textarea').style.fontFamily = hm.monospacefonts.join(',');
-
-			return frameEl;
-		}
+		so = ss.taboption('direct_list', hm.CBITextValue, 'direct_list.yaml', null);
 		so.rows = 20;
 		so.default = 'FQDN:\nIPCIDR:\nIPCIDR6:\n';
 		so.placeholder = "FQDN:\n- mask.icloud.com\n- mask-h2.icloud.com\n- mask.apple-dns.net\nIPCIDR:\n- '223.0.0.0/12'\nIPCIDR6:\n- '2400:3200::/32'\n";
@@ -805,14 +792,7 @@ return view.extend({
 		/* Custom Proxy list */
 		ss.tab('proxy_list', _('Custom Proxy List'));
 
-		so = ss.taboption('proxy_list', form.TextValue, 'proxy_list.yaml', null);
-		so.renderWidget = function(/* ... */) {
-			var frameEl = form.TextValue.prototype.renderWidget.apply(this, arguments);
-
-			frameEl.querySelector('textarea').style.fontFamily = hm.monospacefonts.join(',');
-
-			return frameEl;
-		}
+		so = ss.taboption('proxy_list', hm.CBITextValue, 'proxy_list.yaml', null);
 		so.rows = 20;
 		so.default = 'FQDN:\nIPCIDR:\nIPCIDR6:\n';
 		so.placeholder = "FQDN:\n- www.google.com\nIPCIDR:\n- '91.105.192.0/23'\nIPCIDR6:\n- '2001:67c:4e8::/48'\n";
