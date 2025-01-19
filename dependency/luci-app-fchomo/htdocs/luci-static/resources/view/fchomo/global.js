@@ -195,18 +195,18 @@ return view.extend({
 		}
 
 		so = ss.option(form.DummyValue, '_client_status', _('Client status'));
-		so.cfgvalue = function() { return hm.renderStatus(hm, '_client_bar', CisRunning ? { ...CclashAPI, dashboard_repo: dashboard_repo } : false, 'mihomo-c') }
+		so.cfgvalue = function() { return hm.renderStatus('_client_bar', CisRunning ? { ...CclashAPI, dashboard_repo: dashboard_repo } : false, 'mihomo-c') }
 		poll.add(function() {
 			return hm.getServiceStatus('mihomo-c').then((isRunning) => {
-				hm.updateStatus(hm, document.getElementById('_client_bar'), isRunning ? { dashboard_repo: dashboard_repo } : false, 'mihomo-c');
+				hm.updateStatus(document.getElementById('_client_bar'), isRunning ? { dashboard_repo: dashboard_repo } : false, 'mihomo-c');
 			});
 		})
 
 		so = ss.option(form.DummyValue, '_server_status', _('Server status'));
-		so.cfgvalue = function() { return hm.renderStatus(hm, '_server_bar', SisRunning ? { ...SclashAPI, dashboard_repo: dashboard_repo } : false, 'mihomo-s') }
+		so.cfgvalue = function() { return hm.renderStatus('_server_bar', SisRunning ? { ...SclashAPI, dashboard_repo: dashboard_repo } : false, 'mihomo-s') }
 		poll.add(function() {
 			return hm.getServiceStatus('mihomo-s').then((isRunning) => {
-				hm.updateStatus(hm, document.getElementById('_server_bar'), isRunning ? { dashboard_repo: dashboard_repo } : false, 'mihomo-s');
+				hm.updateStatus(document.getElementById('_server_bar'), isRunning ? { dashboard_repo: dashboard_repo } : false, 'mihomo-s');
 			});
 		})
 
@@ -463,7 +463,7 @@ return view.extend({
 		o = s.taboption('inbound', form.SectionValue, '_inbound', form.NamedSection, 'inbound', 'fchomo', _('Tun settings'));
 		ss = o.subsection;
 
-		so = ss.option(form.RichListValue, 'tun_stack', _('Stack'),
+		so = ss.option(form.RichListValue || form.ListValue, 'tun_stack', _('Stack'),
 			_('Tun stack.'));
 		so.value('system', _('System'), _('Less compatibility and sometimes better performance.'));
 		if (features.with_gvisor) {
@@ -472,6 +472,16 @@ return view.extend({
 		}
 		so.default = 'system';
 		so.rmempty = false;
+		if (!form.RichListValue)
+			so.onchange = function(ev, section_id, value) {
+				var desc = ev.target.nextSibling;
+				if (value === 'mixed')
+					desc.innerHTML = _('Mixed <code>system</code> TCP stack and <code>gVisor</code> UDP stack.');
+				else if (value === 'gvisor')
+					desc.innerHTML = _('Based on google/gvisor.');
+				else if (value === 'system')
+					desc.innerHTML = _('Less compatibility and sometimes better performance.');
+			}
 
 		so = ss.option(form.Value, 'tun_mtu', _('MTU'));
 		so.datatype = 'uinteger';
@@ -774,7 +784,7 @@ return view.extend({
 		/* Custom Direct list */
 		ss.tab('direct_list', _('Custom Direct List'));
 
-		so = ss.taboption('direct_list', hm.CBITextValue, 'direct_list.yaml', null);
+		so = ss.taboption('direct_list', hm.TextValue, 'direct_list.yaml', null);
 		so.rows = 20;
 		so.default = 'FQDN:\nIPCIDR:\nIPCIDR6:\n';
 		so.placeholder = "FQDN:\n- mask.icloud.com\n- mask-h2.icloud.com\n- mask.apple-dns.net\nIPCIDR:\n- '223.0.0.0/12'\nIPCIDR6:\n- '2400:3200::/32'\n";
@@ -792,7 +802,7 @@ return view.extend({
 		/* Custom Proxy list */
 		ss.tab('proxy_list', _('Custom Proxy List'));
 
-		so = ss.taboption('proxy_list', hm.CBITextValue, 'proxy_list.yaml', null);
+		so = ss.taboption('proxy_list', hm.TextValue, 'proxy_list.yaml', null);
 		so.rows = 20;
 		so.default = 'FQDN:\nIPCIDR:\nIPCIDR6:\n';
 		so.placeholder = "FQDN:\n- www.google.com\nIPCIDR:\n- '91.105.192.0/23'\nIPCIDR6:\n- '2001:67c:4e8::/48'\n";
