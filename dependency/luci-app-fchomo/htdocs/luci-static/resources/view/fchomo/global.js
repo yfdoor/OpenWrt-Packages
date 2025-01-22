@@ -472,7 +472,7 @@ return view.extend({
 		}
 		so.default = 'system';
 		so.rmempty = false;
-		if (!form.RichListValue)
+		if (hm.less_24_10)
 			so.onchange = function(ev, section_id, value) {
 				var desc = ev.target.nextSibling;
 				if (value === 'mixed')
