@@ -463,7 +463,7 @@ return view.extend({
 		o = s.taboption('inbound', form.SectionValue, '_inbound', form.NamedSection, 'inbound', 'fchomo', _('Tun settings'));
 		ss = o.subsection;
 
-		so = ss.option(form.RichListValue || form.ListValue, 'tun_stack', _('Stack'),
+		so = ss.option(form.RichListValue || form.ListValue, 'tun_stack', _('Stack'), // less_24_10
 			_('Tun stack.'));
 		so.value('system', _('System'), _('Less compatibility and sometimes better performance.'));
 		if (features.with_gvisor) {
@@ -726,7 +726,7 @@ return view.extend({
 		/* Routing control */
 		ss.tab('routing_control', _('Routing Control'));
 
-		so = ss.taboption('routing_control', form.MultiValue, 'routing_tcpport', _('Routing ports') + ' (TCP)',
+		so = ss.taboption('routing_control', hm.RichMultiValue, 'routing_tcpport', _('Routing ports') + ' (TCP)',
 			_('Specify target ports to be proxied. Multiple ports must be separated by commas.'));
 		so.create = true;
 		hm.routing_port_type.forEach((res) => {
@@ -735,7 +735,7 @@ return view.extend({
 		})
 		so.validate = L.bind(hm.validateCommonPort, so);
 
-		so = ss.taboption('routing_control', form.MultiValue, 'routing_udpport', _('Routing ports') + ' (UDP)',
+		so = ss.taboption('routing_control', hm.RichMultiValue, 'routing_udpport', _('Routing ports') + ' (UDP)',
 			_('Specify target ports to be proxied. Multiple ports must be separated by commas.'));
 		so.create = true;
 		hm.routing_port_type.forEach((res) => {
