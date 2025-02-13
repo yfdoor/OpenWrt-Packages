@@ -7,7 +7,6 @@
 'require uci';
 'require ui';
 'require view';
-'require dom';
 
 'require fchomo as hm';
 'require tools.firewall as fwtool';
@@ -468,6 +467,7 @@ return view.extend({
 		so.placeholder = '7892';
 		so.rmempty = false;
 
+		// Not required for v1.19.2+
 		so = ss.option(form.Value, 'tunnel_port', _('DNS port'));
 		so.datatype = 'port';
 		so.placeholder = '7893';
@@ -687,7 +687,7 @@ return view.extend({
 
 		so = ss.taboption('interface', widgets.DeviceSelect, 'bind_interface', _('Bind interface'),
 			_('Bind outbound traffic to specific interface. Leave empty to auto detect.</br>') +
-			_('Priority: Proxy Node > Proxy Group > Global.'));
+			_('Priority: Proxy Node > Global.'));
 		so.multiple = false;
 		so.noaliases = true;
 
@@ -704,7 +704,7 @@ return view.extend({
 		so.rmempty = false;
 
 		so = ss.taboption('interface', form.Value, 'self_mark', _('Routing mark'),
-			_('Priority: Proxy Node > Proxy Group > Global.'));
+			_('Priority: Proxy Node > Global.'));
 		so.ucisection = 'config';
 		so.datatype = 'uinteger';
 		so.placeholder = '200';
@@ -777,7 +777,9 @@ return view.extend({
 		so.value('routing_gfw', _('Routing GFW'));
 
 		so = ss.taboption('routing_control', form.Flag, 'routing_domain', _('Handle domain'),
-			_('Routing mode will be handle domain.'));
+			_('Routing mode will be handle domain.') + '</br>' +
+			_('Please ensure that the DNS query of the domains to be processed in the DNS policy</br>' +
+				'are send via DIRECT/Proxy Node in the same semantics as Routing mode.'));
 		so.default = so.disabled;
 		if (!features.hm_has_dnsmasq_full) {
 			so.description = _('To enable, you need to install <code>dnsmasq-full</code>.');
