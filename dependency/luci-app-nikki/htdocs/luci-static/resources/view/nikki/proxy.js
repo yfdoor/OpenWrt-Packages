@@ -52,6 +52,9 @@ return view.extend({
         o = s.taboption('transparent_proxy', form.Flag, 'ipv6_proxy', _('IPv6 Proxy'));
         o.rmempty = false;
 
+        o = s.taboption('transparent_proxy', form.Flag, 'fake_ip_ping_hijack', _('Fake-IP Ping Hijack'));
+        o.rmempty = false;
+
         o = s.taboption('transparent_proxy', form.Flag, 'router_proxy', _('Router Proxy'));
         o.rmempty = false;
 
@@ -74,7 +77,7 @@ return view.extend({
         for (const mac in hosts) {
             const host = hosts[mac];
             for (const ip of host.ipaddrs) {
-                const hint = host.name || mac;
+                const hint = host.name ?? mac;
                 o.value(ip, hint ? '%s (%s)'.format(ip, hint) : ip);
             };
         };
@@ -88,7 +91,7 @@ return view.extend({
         for (const mac in hosts) {
             const host = hosts[mac];
             for (const ip of host.ip6addrs) {
-                const hint = host.name || mac;
+                const hint = host.name ?? mac;
                 o.value(ip, hint ? '%s (%s)'.format(ip, hint) : ip);
             };
         };
@@ -101,7 +104,7 @@ return view.extend({
 
         for (const mac in hosts) {
             const host = hosts[mac];
-            const hint = host.name || host.ipaddrs[0];
+            const hint = host.name ?? host.ipaddrs[0];
             o.value(mac, hint ? '%s (%s)'.format(mac, hint) : mac);
         };
 

@@ -66,6 +66,9 @@ return view.extend({
 
         s.tab('external_control', _('External Control Config'));
 
+        o = s.taboption('external_control', form.Value, 'ui_path', '*' + ' ' + _('UI Path'));
+        o.rmempty = false;
+
         o = s.taboption('external_control', form.Value, 'ui_name', '*' + ' ' + _('UI Name'));
 
         o = s.taboption('external_control', form.Value, 'ui_url', '*' + ' ' + _('UI Url'));
@@ -83,7 +86,7 @@ return view.extend({
         o.password = true;
         o.rmempty = false;
 
-        o = s.taboption('external_control', form.Flag, 'selection_cache', _('Save Proxy Selection'));
+        o = s.taboption('external_control', form.Flag, 'selection_cache', '*' + ' ' + _('Save Proxy Selection'));
         o.rmempty = false;
 
         s.tab('inbound', _('Inbound Config'));
@@ -155,6 +158,9 @@ return view.extend({
         o.retain = true;
         o.depends('tun_gso', '1');
 
+        o = s.taboption('tun', form.Flag, 'tun_endpoint_independent_nat', '*' + ' ' + _('Endpoint Independent NAT'));
+        o.rmempty = false;
+
         o = s.taboption('tun', form.Flag, 'tun_dns_hijack', '*' + ' ' + _('Overwrite DNS Hijack'));
         o.rmempty = false;
 
@@ -164,9 +170,6 @@ return view.extend({
         o.depends('tun_dns_hijack', '1');
         o.value('tcp://any:53');
         o.value('udp://any:53');
-
-        o = s.taboption('tun', form.Flag, 'tun_endpoint_independent_nat', '*' + ' ' + _('Endpoint Independent NAT'));
-        o.rmempty = false;
 
         s.tab('dns', _('DNS Config'));
 
@@ -432,7 +435,7 @@ return view.extend({
         so.value('GEOSITE', _('Domain Name Geo'));
         so.value('GEOIP', _('Destination IP Geo'));
 
-        so = o.subsection.option(form.Value, 'match', _('Matcher'));
+        so = o.subsection.option(form.Value, 'matcher', _('Matcher'));
         so.rmempty = false;
 
         so = o.subsection.option(form.Value, 'node', _('Node'));
